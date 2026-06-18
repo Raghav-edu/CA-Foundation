@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CA Foundation - Performance & Progress Tracker</title>
+    <style>
+        :root {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --primary: #4f46e5;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem 1rem; display: flex; justify-content: center; }
+
+        .container { width: 100%; max-width: 1000px; }
+
+        header { text-align: center; margin-bottom: 2rem; }
+        header h1 { font-size: 2.25rem; color: var(--primary); margin-bottom: 0.5rem; }
+        header p { color: var(--text-muted); font-size: 1.1rem; }
+
+        .config-panel {
+            background: var(--card-bg); padding: 1.5rem; border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 2rem;
+            border: 1px solid var(--border); display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
+        }
+        .config-inputs { display: flex; flex-wrap: wrap; gap: 1.5rem; flex-grow: 1; }
+        .config-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .config-group label { font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
+        .config-group input {
+            padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 8px;
+            font-size: 1rem; font-weight: bold; outline: none; color: var(--primary); background: #f8fafc;
+        }
+        .days-display-box {
+            background: #e0e7ff; color: #3730a3; padding: 1rem 1.5rem; border-radius: 10px;
+            font-size: 1.1rem; font-weight: bold; text-align: center; min-width: 190px; border: 1px solid #c7d2fe;
+        }
+
+        .subject-card {
+            background: var(--card-bg); border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin-bottom: 2rem;
+            border: 1px solid var(--border); overflow: hidden;
+        }
+        .subject-header {
+            background: #e2e8f0; padding: 1.25rem 1.5rem; font-size: 1.3rem;
+            font-weight: 800; color: #1e293b; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 2px solid var(--border); flex-wrap: wrap; gap: 0.75rem;
+        }
+        .subject-duration-control {
+            display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 600;
+        }
+        .subject-duration-control label { color: #475569; font-weight: 600; white-space: nowrap; }
+        .duration-select {
+            padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid #94a3b8;
+            background: white; font-size: 0.85rem; font-weight: 700; color: #1e293b;
+            cursor: pointer; outline: none;
+        }
+        .duration-custom-input {
+            width: 70px; padding: 0.3rem 0.5rem; border-radius: 6px; border: 1px solid #94a3b8;
+            background: white; font-size: 0.85rem; font-weight: 700; color: #1e293b; outline: none;
+            display: none;
+        }
+
+        .subject-dashboard {
+            background: #f8fafc; display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            border-bottom: 1px solid var(--border); padding: 1rem; gap: 1rem;
+        }
+        .mini-stat { background: white; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
+        .mini-stat h4 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.5px; }
+        .mini-stat-val { font-size: 1.25rem; font-weight: 700; }
+        .status-badge { display: inline-block; margin-top: 0.25rem; font-size: 0.9rem; font-weight: bold; padding: 0.2rem 0.6rem; border-radius: 4px; }
+        .status-ahead { background: #d1fae5; color: #065f46; }
+        .status-behind { background: #fee2e2; color: #991b1b; }
+
+        .subject-note {
+            background: #f0f9ff; border-top: 1px solid #bae6fd; padding: 0.6rem 1.5rem;
+            font-size: 0.82rem; color: #0369a1; font-style: italic;
+        }
+
+        .chapters-list { padding: 1rem 1.5rem; }
+        .chapter-row {
+            display: flex; align-items: center; padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9; gap: 1rem;
+        }
+        .chapter-row:last-child { border-bottom: none; }
+        .chapter-row input[type="checkbox"] { width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: var(--primary); }
+        .chapter-title { flex-grow: 1; font-size: 1rem; font-weight: 500; }
+        .chapter-badges { display: flex; gap: 0.75rem; font-size: 0.85rem; white-space: nowrap; }
+        .badge { background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 600; color: #475569; border: 1px solid #e2e8f0; }
+
+        .overall-summary {
+            background: var(--card-bg); padding: 1.25rem 1.5rem; border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+        .overall-summary h3 {
+            font-size: 1.1rem; color: var(--text-main);
+            margin-bottom: 1rem; font-weight: 800;
+        }
+        .overall-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        .overall-summary .mini-stat { background: #f8fafc; }
+
+        .progress-footer {
+          margin-top: 1.5rem;
+          text-align: center;
+          color: #64748b;
+          font-size: 0.95rem;
+          font-family: "Georgia", "Times New Roman", serif;
+          letter-spacing: 0.4px;
+          opacity: 0.9;
+          user-select: none;
+        }
+        .progress-footer span {
+          font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .config-panel { flex-direction: column; align-items: stretch; }
+            .chapter-row { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+            .chapter-badges { width: 100%; justify-content: space-between; }
+            .overall-summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>CA Foundation Progress Analytics Dashboard 📊</h1>
+        <p>High-Precision Dynamic Progress Tracker & Timeline Analytics</p>
+    </header>
+
+    <div class="config-panel">
+        <div class="config-inputs">
+            <div class="config-group">
+                <label for="startDate">Preparation Commencement Date:</label>
+                <input type="date" id="startDate" value="2026-06-01" onchange="calculateAllMetrics()">
+            </div>
+            <div class="config-group">
+                <label for="currentDateTime">Evaluation Date & Time:</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="datetime-local" id="currentDateTime" onchange="calculateAllMetrics()">
+                    <button onclick="setNow()" style="padding:0.5rem 0.9rem; background:#4f46e5; color:white; border:none; border-radius:8px; font-size:0.85rem; font-weight:700; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">Now</button>
+                </div>
+            </div>
+        </div>
+        <div class="days-display-box" id="daysElapsedDisplay">
+            Time Elapsed: 0.00 Days
+        </div>
+    </div>
+
+    <div class="overall-summary">
+        <h3>Overall Progress (All Papers)</h3>
+        <div class="overall-summary-grid">
+            <div class="mini-stat">
+                <h4>Completed Progress (Total)</h4>
+                <div class="mini-stat-val" id="overallScoreA">0 / 440 M</div>
+            </div>
+            <div class="mini-stat">
+                <h4>Expected Progress (Total)</h4>
+                <div class="mini-stat-val" id="overallScoreB">0 / 440 M</div>
+            </div>
+            <div class="mini-stat">
+                <h4>Overall Pace</h4>
+                <div id="overallStatus" class="status-badge">Calculating...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="subjectsContainer"></div>
+
+    <div class="progress-footer">
+        <span>~ created by Raghav Lahoti</span>
+    </div>
+</div>
+
+<button onclick="clearAllSelections()" style="
+    position: fixed; bottom: 2rem; right: 2rem; background: #ef4444; color: white;
+    border: none; padding: 0.75rem 1.5rem; border-radius: 10px; font-size: 0.95rem;
+    font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+    z-index: 999; transition: background 0.2s, transform 0.1s; letter-spacing: 0.3px;
+" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'"
+   onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'">
+    Clear All
+</button>
+
+<script>
+    const subjectsConfig = [
+        {
+            title: "Paper 1: Accounting",
+            defaultDays: 60,
+            totalMarks: 120,
+            chapters: [
+                { count: 1, name: "Theoretical Framework", weightage: 9, days: 4 },
+                { count: 2, name: "Accounting Process", weightage: 9, days: 5 },
+                { count: 3, name: "Bank Reconciliation Statement", weightage: 8, days: 4 },
+                { count: 4, name: "Inventories", weightage: 5, days: 2 },
+                { count: 5, name: "Depreciation and Amortisation", weightage: 9, days: 5 },
+                { count: 6, name: "Bills of Exchange and Promissory Notes", weightage: 8, days: 4 },
+                { count: 7, name: "Preparation of Final Accounts of Sole Proprietors", weightage: 9, days: 4 },
+                { count: 8, name: "Financial Statements of Not-for-Profit Organisations", weightage: 9, days: 5 },
+                { count: 9, name: "Accounts from Incomplete Records", weightage: 9, days: 4 },
+                { count: 10, name: "Partnership and LLP Accounts", weightage: 21, days: 11 },
+                { count: 11, name: "Company Accounts", weightage: 24, days: 12 }
+            ]
+        },
+        {
+            title: "Paper 2: Business Laws",
+            defaultDays: 60,
+            totalMarks: 120,
+            chapters: [
+                { count: 1, name: "Indian Regulatory Framework", weightage: 6, days: 3 },
+                { count: 2, name: "The Indian Contract Act, 1872", weightage: 32, days: 16 },
+                { count: 3, name: "The Sale of Goods Act, 1930", weightage: 21, days: 11 },
+                { count: 4, name: "The Indian Partnership Act, 1932", weightage: 20, days: 10 },
+                { count: 5, name: "The Limited Liability Partnership Act, 2008", weightage: 6, days: 3 },
+                { count: 6, name: "The Companies Act, 2013", weightage: 21, days: 10 },
+                { count: 7, name: "The Negotiable Instruments Act, 1881", weightage: 14, days: 7 }
+            ]
+        },
+        {
+            title: "Paper 3: Quantitative Aptitude",
+            defaultDays: 57,
+            totalMarks: 100,
+            chapters: [
+                { count: 1, name: "Ratio and Proportion, Indices and Logarithms", weightage: 4, days: 3 },
+                { count: 2, name: "Equations", weightage: 4, days: 2 },
+                { count: 3, name: "Linear Inequalities", weightage: 2, days: 1 },
+                { count: 4, name: "Mathematics of Finance", weightage: 14, days: 8 },
+                { count: 5, name: "Permutations and Combinations", weightage: 4, days: 2 },
+                { count: 6, name: "Sequence and Series", weightage: 4, days: 2 },
+                { count: 7, name: "Sets, Relations and Functions & Basics of Limits and Continuity functions", weightage: 4, days: 2 },
+                { count: 8, name: "Basic applications of Differential and Integral calculus in Business and Economics", weightage: 4, days: 2 },
+                { count: 9, name: "Number series, Coding and Decoding & odd man out", weightage: 5, days: 3 },
+                { count: 10, name: "Direction Tests", weightage: 5, days: 3 },
+                { count: 11, name: "Seating Arrangements", weightage: 5, days: 3 },
+                { count: 12, name: "Blood Relations", weightage: 5, days: 3 },
+                { count: 13, name: "Statistical Representation of Data & Sampling", weightage: 8, days: 5 },
+                { count: 14, name: "Measures of Central Tendency & Dispersion", weightage: 11, days: 6 },
+                { count: 15, name: "Probability", weightage: 6, days: 3 },
+                { count: 16, name: "Theoretical Distributions", weightage: 5, days: 3 },
+                { count: 17, name: "Correlation and Regression", weightage: 5, days: 3 },
+                { count: 18, name: "Index Numbers", weightage: 5, days: 3 }
+            ]
+        },
+        {
+            title: "Paper 4: Business Economics",
+            defaultDays: 57,
+            totalMarks: 100,
+            chapters: [
+                { count: 1, name: "Introduction to Business Economics", weightage: 5, days: 3 },
+                { count: 2, name: "Theory of Demand and Supply", weightage: 10, days: 6 },
+                { count: 3, name: "Theory of Production and Cost", weightage: 10, days: 5 },
+                { count: 4, name: "Price Determination in Different Markets", weightage: 15, days: 8 },
+                { count: 5, name: "Determination of National Income", weightage: 15, days: 9 },
+                { count: 6, name: "Business Cycles", weightage: 5, days: 3 },
+                { count: 7, name: "Public Finance", weightage: 10, days: 6 },
+                { count: 8, name: "Money Market", weightage: 10, days: 5 },
+                { count: 9, name: "International Trade", weightage: 10, days: 6 },
+                { count: 10, name: "Indian Economy", weightage: 10, days: 6 }
+            ]
+        }
+    ];
+
+    const selectedDurations = {};
+
+    const DURATION_OPTIONS = [
+        { label: "30 Days", value: 30 },
+        { label: "60 Days", value: 60 },
+        { label: "90 Days", value: 90 },
+        { label: "120 Days", value: 120 },
+        { label: "Custom", value: "custom" }
+    ];
+
+    function getSelectedDuration(sIdx) {
+        return selectedDurations[sIdx] || subjectsConfig[sIdx].defaultDays;
+    }
+
+    function buildDurationControl(sIdx) {
+        const sub = subjectsConfig[sIdx];
+        const defaultVal = sub.defaultDays;
+
+        let optionsHtml = DURATION_OPTIONS.map(opt => {
+            const sel = opt.value === defaultVal ? 'selected' : '';
+            return `<option value="${opt.value}" ${sel}>${opt.label}</option>`;
+        }).join('');
+
+        return `
+            <div class="subject-duration-control">
+                <label>Target Duration:</label>
+                <select class="duration-select" id="dur-select-${sIdx}" onchange="onDurationChange(${sIdx})">
+                    ${optionsHtml}
+                </select>
+                <input type="number" class="duration-custom-input" id="dur-custom-${sIdx}"
+                    min="1" max="365" placeholder="Days"
+                    oninput="onCustomDurationInput(${sIdx})">
+            </div>
+        `;
+    }
+
+    function onDurationChange(sIdx) {
+        const sel = document.getElementById(`dur-select-${sIdx}`);
+        const customInput = document.getElementById(`dur-custom-${sIdx}`);
+        if (sel.value === 'custom') {
+            customInput.style.display = 'inline-block';
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+            selectedDurations[sIdx] = parseInt(sel.value);
+            saveState();
+            calculateAllMetrics();
+        }
+    }
+
+    function onCustomDurationInput(sIdx) {
+        const customInput = document.getElementById(`dur-custom-${sIdx}`);
+        const val = parseInt(customInput.value);
+        if (val > 0) {
+            selectedDurations[sIdx] = val;
+            saveState();
+            calculateAllMetrics();
+        }
+    }
+
+    function initApp() {
+        const container = document.getElementById('subjectsContainer');
+        container.innerHTML = '';
+
+        subjectsConfig.forEach((sub, sIdx) => {
+            const card = document.createElement('div');
+            card.className = 'subject-card';
+
+            const header = document.createElement('div');
+            header.className = 'subject-header';
+            header.innerHTML = `
+                <span>${sub.title}</span>
+                ${buildDurationControl(sIdx)}
+            `;
+
+            const miniDash = document.createElement('div');
+            miniDash.className = 'subject-dashboard';
+            miniDash.innerHTML = `
+                <div class="mini-stat">
+                    <h4>Completed Progress (Metric A)</h4>
+                    <div class="mini-stat-val" id="scoreA-s${sIdx}">0 / ${sub.totalMarks} M</div>
+                </div>
+                <div class="mini-stat">
+                    <h4>Expected Progress (Metric B)</h4>
+                    <div class="mini-stat-val" id="scoreB-s${sIdx}">0 / ${sub.totalMarks} M</div>
+                </div>
+                <div class="mini-stat">
+                    <h4>Pace Evaluation</h4>
+                    <div id="status-s${sIdx}" class="status-badge">Calculating...</div>
+                </div>
+            `;
+
+            const noteBar = document.createElement('div');
+            noteBar.className = 'subject-note';
+            noteBar.id = `note-s${sIdx}`;
+            noteBar.innerText = '';
+
+            const listContainer = document.createElement('div');
+            listContainer.className = 'chapters-list';
+
+            sub.chapters.forEach((ch) => {
+                const row = document.createElement('div');
+                row.className = 'chapter-row';
+                const chkId = `chk-${sIdx}-${ch.count}`;
+                row.innerHTML = `
+                    <input type="checkbox" id="${chkId}" onchange="calculateAllMetrics()">
+                    <div class="chapter-title"><strong>Ch-${ch.count}:</strong> ${ch.name}</div>
+                    <div class="chapter-badges">
+                        <span class="badge">🎯 ${ch.weightage} Marks</span>
+                        <span class="badge" id="days-badge-${sIdx}-${ch.count}">⏳ ${ch.days} Days</span>
+                    </div>
+                `;
+                listContainer.appendChild(row);
+            });
+
+            card.appendChild(header);
+            card.appendChild(miniDash);
+            card.appendChild(noteBar);
+            card.appendChild(listContainer);
+            container.appendChild(card);
+        });
+
+        loadData();
+    }
+
+    function calculateAllMetrics() {
+        const startDateStr = document.getElementById('startDate').value;
+        const currentDateTimeStr = document.getElementById('currentDateTime').value;
+        let daysElapsed = 0;
+
+        if (startDateStr && currentDateTimeStr) {
+            const startDate = new Date(startDateStr + "T00:00:00");
+            const currentDate = new Date(currentDateTimeStr);
+            const timeDiff = currentDate - startDate;
+            daysElapsed = timeDiff / (1000 * 60 * 60 * 24);
+            daysElapsed = daysElapsed < 0 ? 0 : daysElapsed;
+            document.getElementById('daysElapsedDisplay').innerHTML = `Time Elapsed: <strong>${daysElapsed.toFixed(2)} Days</strong>`;
+        } else {
+            document.getElementById('daysElapsedDisplay').innerHTML = `Time Elapsed: <strong>0.00 Days</strong>`;
+        }
+
+        subjectsConfig.forEach((sub, sIdx) => {
+            let metricA = 0;
+            sub.chapters.forEach((ch) => {
+                const cb = document.getElementById(`chk-${sIdx}-${ch.count}`);
+                if (cb && cb.checked) metricA += ch.weightage;
+            });
+
+            const duration = getSelectedDuration(sIdx);
+            let metricB = 0;
+            if (daysElapsed > 0) {
+                metricB = (sub.totalMarks * daysElapsed) / duration;
+                if (metricB > sub.totalMarks) metricB = sub.totalMarks;
+            }
+
+            const roundVal = v => Number.isInteger(v) ? v : Math.round(v * 10) / 10;
+            const metricADisplay = roundVal(metricA);
+            const metricBDisplay = roundVal(metricB);
+
+            document.getElementById(`scoreA-s${sIdx}`).innerText = `${metricADisplay} / ${sub.totalMarks} M`;
+            document.getElementById(`scoreB-s${sIdx}`).innerText = `${metricBDisplay} / ${sub.totalMarks} M`;
+
+            const statusEl = document.getElementById(`status-s${sIdx}`);
+            if (metricA >= metricB) {
+                statusEl.innerText = "👍 On Schedule / Ahead";
+                statusEl.className = "status-badge status-ahead";
+            } else {
+                const diff = roundVal(metricB - metricA);
+                statusEl.innerText = `🚨 Behind Schedule by ${diff} M`;
+                statusEl.className = "status-badge status-behind";
+            }
+
+            let scaledDaysTotal = 0;
+            sub.chapters.forEach((ch) => {
+                const badge = document.getElementById(`days-badge-${sIdx}-${ch.count}`);
+                if (badge) {
+                    if (duration === sub.defaultDays) {
+                        badge.innerText = `⏳ ${ch.days} Days`;
+                        scaledDaysTotal += ch.days;
+                    } else {
+                        const exact = (ch.weightage / sub.totalMarks) * duration;
+                        const scaled = Number.isInteger(exact) ? exact : Math.round(exact);
+                        badge.innerText = `⏳ ${scaled} Days`;
+                        scaledDaysTotal += scaled;
+                    }
+                }
+            });
+
+            const noteEl = document.getElementById(`note-s${sIdx}`);
+            if (duration !== sub.defaultDays) {
+                noteEl.innerText = `ℹ️ Total no. of days = ${scaledDaysTotal} days (rounded off for ease; selected target: ${duration} days)`;
+                noteEl.style.display = 'block';
+            } else {
+                noteEl.innerText = '';
+                noteEl.style.display = 'none';
+            }
+
+            saveState();
+        });
+
+        let overallA = 0, overallB = 0;
+        const overallTotalMarks = subjectsConfig.reduce((sum, sub) => sum + sub.totalMarks, 0);
+
+        subjectsConfig.forEach((sub, sIdx) => {
+            let metricA = 0;
+            sub.chapters.forEach((ch) => {
+                const cb = document.getElementById(`chk-${sIdx}-${ch.count}`);
+                if (cb && cb.checked) metricA += ch.weightage;
+            });
+            const duration = getSelectedDuration(sIdx);
+            let metricB = 0;
+            if (daysElapsed > 0) {
+                metricB = (sub.totalMarks * daysElapsed) / duration;
+                if (metricB > sub.totalMarks) metricB = sub.totalMarks;
+            }
+            overallA += metricA;
+            overallB += metricB;
+        });
+
+        const roundValOverall = v => Number.isInteger(v) ? v : Math.round(v * 10) / 10;
+        document.getElementById('overallScoreA').innerText = `${roundValOverall(overallA)} / ${overallTotalMarks} M`;
+        document.getElementById('overallScoreB').innerText = `${roundValOverall(overallB)} / ${overallTotalMarks} M`;
+
+        const overallStatusEl = document.getElementById('overallStatus');
+        if (overallA >= overallB) {
+            overallStatusEl.innerText = "👍 On Schedule / Ahead";
+            overallStatusEl.className = "status-badge status-ahead";
+        } else {
+            const diff = roundValOverall(overallB - overallA);
+            overallStatusEl.innerText = `🚨 Behind Schedule by ${diff} M`;
+            overallStatusEl.className = "status-badge status-behind";
+        }
+    }
+
+    function saveState() {
+        const startDateStr = document.getElementById('startDate').value;
+        const currentDateTimeStr = document.getElementById('currentDateTime').value;
+        const savedChecks = {};
+        subjectsConfig.forEach((sub, sIdx) => {
+            sub.chapters.forEach((ch) => {
+                const cb = document.getElementById(`chk-${sIdx}-${ch.count}`);
+                if (cb && cb.checked) savedChecks[`${sIdx}-${ch.count}`] = true;
+            });
+        });
+        localStorage.setItem('ca_tracker_startDate', startDateStr);
+        localStorage.setItem('ca_tracker_currentDateTime', currentDateTimeStr);
+        localStorage.setItem('ca_tracker_checks', JSON.stringify(savedChecks));
+        localStorage.setItem('ca_tracker_durations', JSON.stringify(selectedDurations));
+    }
+
+    function loadData() {
+        const savedStartDate = localStorage.getItem('ca_tracker_startDate');
+        const savedCurrentDateTime = localStorage.getItem('ca_tracker_currentDateTime');
+        const savedChecks = localStorage.getItem('ca_tracker_checks');
+        const savedDurations = localStorage.getItem('ca_tracker_durations');
+
+        document.getElementById('startDate').value = savedStartDate || "2026-06-01";
+
+        if (savedCurrentDateTime) {
+            document.getElementById('currentDateTime').value = savedCurrentDateTime;
+        } else {
+            setNow();
+        }
+
+        if (savedDurations) {
+            const durations = JSON.parse(savedDurations);
+            Object.keys(durations).forEach(sIdx => {
+                selectedDurations[sIdx] = durations[sIdx];
+                const dur = durations[sIdx];
+                const sel = document.getElementById(`dur-select-${sIdx}`);
+                const customInput = document.getElementById(`dur-custom-${sIdx}`);
+                if (sel) {
+                    const matchingOption = DURATION_OPTIONS.find(o => o.value === dur);
+                    if (matchingOption) {
+                        sel.value = dur;
+                        customInput.style.display = 'none';
+                    } else {
+                        sel.value = 'custom';
+                        customInput.style.display = 'inline-block';
+                        customInput.value = dur;
+                    }
+                }
+            });
+        }
+
+        if (savedChecks) {
+            const checks = JSON.parse(savedChecks);
+            Object.keys(checks).forEach(key => {
+                const cb = document.getElementById(`chk-${key}`);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        calculateAllMetrics();
+    }
+
+    function setNow() {
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60000;
+        const istTime = new Date(now.getTime() + istOffset);
+        document.getElementById('currentDateTime').value = istTime.toISOString().slice(0, 16);
+        calculateAllMetrics();
+    }
+
+    function clearAllSelections() {
+        subjectsConfig.forEach((sub, sIdx) => {
+            sub.chapters.forEach((ch) => {
+                const cb = document.getElementById(`chk-${sIdx}-${ch.count}`);
+                if (cb) cb.checked = false;
+            });
+        });
+        localStorage.removeItem('ca_tracker_checks');
+        calculateAllMetrics();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.onload = () => { initApp(); };
+</script>
+
+</body>
+</html>
